@@ -1,0 +1,44 @@
+{
+    "$schema": "https://raw.githubusercontent.com/mspnp/template-building-blocks/master/schemas/buildingBlocks.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "buildingBlocks": {
+            "value": [
+                {
+                    "type": "VirtualMachineExtension",
+                    "settings": [
+                        {
+                            "vms": [
+                                "test-vm",
+                                "test-vm2"
+                            ],
+                            "extensions": [
+                                {
+                                    "name": "testCustomExtension2",
+                                    "publisher": "Microsoft.Compute",
+                                    "type": "CustomScriptExtension",
+                                    "typeHandlerVersion": "1.7",
+                                    "autoUpgradeMinorVersion": false,
+                                    "settings": {
+                                        "fileUris": [
+                                            "https://mspnpteststorage.blob.core.windows.net/extensions/test.ps1"
+                                        ],
+                                        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ./test.ps1"
+                                    },
+                                    "protectedSettings": {
+                                        "reference": {
+                                            "keyVault": {
+                                                "id": "/subscriptions/2a8545f9-dc4c-43f5-aea4-7a4a5df8c835/resourceGroups/mspnp/providers/Microsoft.KeyVault/vaults/mspnptestvault"
+                                            },
+                                            "secretName": "testsecret"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

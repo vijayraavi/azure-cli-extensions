@@ -9,5 +9,5 @@
         "-p",
         "test/**/*.py"
     ],
-    "python.pythonPath": "${workspaceFolder}\\env\\Scripts\\python.exe"
+    "python.pythonPath": "C:\\Users\\James\\AppData\\Local\\Programs\\Python\\Python36\\python.exe"
 }

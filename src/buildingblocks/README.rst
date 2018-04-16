@@ -1,6 +1,11 @@
 Developer Setup
 ==============================
 
+Prerequisites
+1. pip install knack
+2. pip install virtualenv
+3. pip install azure.cli.core
+
 1.  Clone repo!
 
 2.  Setup a virtual environment:  python -m venv <path_under_project>

@@ -71,7 +71,7 @@ class BuildingBlocksParameterFile(BuildingBlockModel):
                     if 'location' not in child:
                         child['location'] = parent.get('location', None)
                     BuildingBlocksParameterFile._add_deployment_information(child)
-            elif isinstance(value, dict) and key != 'tags':
+            elif isinstance(value, dict) and key != 'tags' and key != "protectedSettings":
                 if 'subscriptionId' not in value:
                     value['subscriptionId'] = parent.get('subscriptionId', None)
                 if 'resourceGroupName' not in value:

@@ -19,7 +19,7 @@
             "name": "az process test",
             "request": "launch",
             "type": "python",
-            "stopOnEntry": true,
+            "stopOnEntry": false,
             "pythonPath": "C:\\Program Files (x86)\\Microsoft SDKs\\Azure\\CLI2\\python.exe",
             "cwd": "${workspaceFolder}",
             //"cwd": "C:\\Program Files (x86)\\Microsoft SDKs\\Azure\\CLI2\\Lib\\site-packages\\azure\\cli\\",
@@ -29,16 +29,18 @@
                 "process",
                 "--debug",
                 "--parameter-file",
-                "${workspaceFolder}\\multiple-blocks.json",
+                "${workspaceFolder}\\deploy-test.json",
                 "--resource-group",
-                "my-test-rg-azbb"
+                "mspnp",
+                "--location",
+                "north europe"
                 //"-Im",
                 //"azure.cli"//,
                 // "extension",
                 // "list"
             ],
             "env": {
-                "AZURE_EXTENSION_DIR": "C:\\Users\\anoakley\\.azure\\devcliextensions"
+                "AZURE_EXTENSION_DIR": "C:\\Users\\james\\.azure\\devcliextensions"
             },
             //"console": "integratedTerminal",
             "debugOptions": [
@@ -63,7 +65,7 @@
                 //"does-not-exist"
             ],
             "env": {
-                "AZURE_EXTENSION_DIR": "C:\\Users\\anoakley\\.azure\\devcliextensions"
+                "AZURE_EXTENSION_DIR": "C:\\Users\\james\\.azure\\devcliextensions"
             },
             //"console": "integratedTerminal",
             "debugOptions": [
@@ -74,7 +76,7 @@
             "name": "az deploy test",
             "request": "launch",
             "type": "python",
-            "stopOnEntry": true,
+            "stopOnEntry": false,
             "pythonPath": "C:\\Program Files (x86)\\Microsoft SDKs\\Azure\\CLI2\\python.exe",
             "cwd": "${workspaceFolder}",
             //"cwd": "C:\\Program Files (x86)\\Microsoft SDKs\\Azure\\CLI2\\Lib\\site-packages\\azure\\cli\\",
@@ -84,16 +86,18 @@
                 "deploy",
                 "--debug",
                 "--parameter-file",
-                "${workspaceFolder}\\deploy-test.json",
+                "${workspaceFolder}\\deploy-app-gateway.json",
                 "--resource-group",
-                "my-test-rg-azbb"
+                "mspnp",
+                "--location",
+                "north europe"
                 //"-Im",
                 //"azure.cli"//,
                 // "extension",
                 // "list"
             ],
             "env": {
-                "AZURE_EXTENSION_DIR": "C:\\Users\\anoakley\\.azure\\devcliextensions"
+                "AZURE_EXTENSION_DIR": "C:\\Users\\james\\.azure\\devcliextensions"
             },
             //"console": "integratedTerminal",
             "debugOptions": [
@@ -116,7 +120,7 @@
                 "--debug"
             ],
             "env": {
-                "AZURE_EXTENSION_DIR": "C:\\Users\\anoakley\\.azure\\devcliextensions"
+                "AZURE_EXTENSION_DIR": "C:\\Users\\james\\.azure\\devcliextensions"
             },
             //"console": "integratedTerminal",
             "debugOptions": [

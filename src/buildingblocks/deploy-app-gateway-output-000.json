@@ -1,0 +1,207 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "applicationGateways": {
+            "value": [
+                {
+                    "subscriptionId": "2a8545f9-dc4c-43f5-aea4-7a4a5df8c835",
+                    "resourceGroupName": "mspnp",
+                    "id": "/subscriptions/2a8545f9-dc4c-43f5-aea4-7a4a5df8c835/resourceGroups/mspnp/providers/Microsoft.Network",
+                    "location": "northeurope",
+                    "tags": {},
+                    "properties": {
+                        "sku": {
+                            "size": "Medium",
+                            "capacity": 2,
+                            "tier": "WAF"
+                        },
+                        "sslPolicy": {
+                            "policyType": "Custom",
+                            "cipherSuites": [
+                                "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+                                "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+                                "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+                            ],
+                            "minProtocolVersion": "TLSv1_2"
+                        },
+                        "gatewayIPConfigurations": [
+                            {
+                                "name": "appGatewayIpConfig",
+                                "subnetName": "ad"
+                            }
+                        ],
+                        "sslCertificates": [
+                            {
+                                "name": "ssltest",
+                                "data": "MIIDADCCAeigAwIBAgIQGX+BiMW6nZ1ExDxESqwXwTANBgkqhkiG9w0BAQUFADATMREwDwYDVQQDDAhKb2huIERvZTAeFw0xNzA5MDYxNDIzNDhaFw0xODA5MDYxNDQzNDhaMBMxETAPBgNVBAMMCEpvaG4gRG9lMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA05o8hLO1qACpCmFH3FVYVigVakcBip2MRJSVqHSYVJ81Mi11giIsrCiaf0X2sCKWLjQjmjH/o7+PLC4xTRhMR/jeLgc3GAOJgrzdNk7QVAuD+7g8/zc9li6+2wAG7KtNtm3PEyK5EHU/Eq+1D5VBmtBP7FBHYGJZqBZOZ7dGiKnTj4fSazRIM2iIdlnAn5WOFyn1PE6d0QU6PdohwzHDh4W5PMIe7aXfZgjHcq0gNR1WPln91Z2MEnhst3sOJntwPKEUXU8f0Mww0oe9OWH7jTnY11ZS01rFbAAkCAadWu1KMJULnAqDJJ6UU4r4S+wCruC1YrdBHZ0pnm51lIoXMQIDAQABo1AwTjAOBgNVHQ8BAf8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMB0GA1UdDgQWBBSq3ScF1m75MqUh5hlHx6Gt/EhQ+zANBgkqhkiG9w0BAQUFAAOCAQEAFkUQYHRF7I69xWMEJdXyC0gsgNc5gU1V74VK7ljsqa/u3xWZaCHO0kuXwkpqvM4ywJ+kRY1EFngb0ORyCSQeyBJUxKqd7EIoSzCv/PO0tK05aXZNCmnClDXPl2Sj+U2CnXCzWNMMcPep17WuNzqmLZpKtjRgh7FId4x4FGyow6Wou9fWVcQV5+Qx+8OvtuWob5O18ocTr6McpNwu6Ze3UNKn5i7HEIJBFtjbyK61DyqURrWiONn9HDcZbpWaD1WClm+75VbJBvOXHEAwrtU2gHyF61RQ4tQyqqOepGuet2qK8atqxF3YpV/GwgqdZoSvH5JEJ3Iztx0y0Dz/dN/XMw==",
+                                "password": "12345"
+                            }
+                        ],
+                        "frontendIPConfigurations": [
+                            {
+                                "subscriptionId": "2a8545f9-dc4c-43f5-aea4-7a4a5df8c835",
+                                "resourceGroupName": "mspnp",
+                                "location": "northeurope",
+                                "name": "appGatewayFrontendIP",
+                                "applicationGatewayType": "Public"
+                            },
+                            {
+                                "subscriptionId": "2a8545f9-dc4c-43f5-aea4-7a4a5df8c835",
+                                "resourceGroupName": "mspnp",
+                                "location": "northeurope",
+                                "name": "testfec",
+                                "applicationGatewayType": "Internal",
+                                "internalApplicationGatewaySettings": {
+                                    "subnetName": "ad"
+                                }
+                            }
+                        ],
+                        "frontendPorts": [
+                            {
+                                "name": "appGatewayFrontendPort",
+                                "port": 80
+                            },
+                            {
+                                "name": "list1-http1",
+                                "port": 81
+                            },
+                            {
+                                "name": "list-http2",
+                                "port": 82
+                            }
+                        ],
+                        "probes": [
+                            {
+                                "name": "p1",
+                                "protocol": "Http",
+                                "host": "contoso.com",
+                                "path": "/",
+                                "interval": 30,
+                                "timeout": 30,
+                                "unhealthyThreshold": 3,
+                                "match": {}
+                            }
+                        ],
+                        "backendAddressPools": [
+                            {
+                                "name": "appGatewayBackendPool",
+                                "backendAddresses": [
+                                    {
+                                        "fqdn": "www.contoso.com"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "bp2"
+                            }
+                        ],
+                        "backendHttpSettingsCollection": [
+                            {
+                                "name": "appGatewayBackendHttpSettings",
+                                "port": 80,
+                                "protocol": "Http",
+                                "cookieBasedAffinity": "Disabled",
+                                "requestTimeout": 30,
+                                "probeEnabled": true
+                            },
+                            {
+                                "name": "test-settings",
+                                "port": 80,
+                                "protocol": "Http",
+                                "cookieBasedAffinity": "Enabled",
+                                "requestTimeout": 20,
+                                "probeEnabled": true,
+                                "probeName": "p1"
+                            }
+                        ],
+                        "httpListeners": [
+                            {
+                                "name": "appGatewayHttpListener",
+                                "frontendIPConfigurationName": "appGatewayFrontendIP",
+                                "frontendPortName": "appGatewayFrontendPort",
+                                "protocol": "Http"
+                            },
+                            {
+                                "name": "list1",
+                                "frontendIPConfigurationName": "testfec",
+                                "frontendPortName": "list1-http1",
+                                "protocol": "Http"
+                            },
+                            {
+                                "name": "list2",
+                                "frontendIPConfigurationName": "testfec",
+                                "frontendPortName": "list-http2",
+                                "protocol": "Http"
+                            }
+                        ],
+                        "urlPathMaps": [
+                            {
+                                "name": "pb-rule1",
+                                "defaultBackendAddressPoolName": "appGatewayBackendPool",
+                                "pathRules": [
+                                    {
+                                        "name": "p1",
+                                        "paths": [
+                                            "/foo"
+                                        ],
+                                        "backendAddressPoolName": "bp2"
+                                    },
+                                    {
+                                        "name": "p2",
+                                        "paths": [
+                                            "/bar"
+                                        ],
+                                        "backendAddressPoolName": "appGatewayBackendPool"
+                                    }
+                                ]
+                            }
+                        ],
+                        "requestRoutingRules": [
+                            {
+                                "name": "rule1",
+                                "httpListenerName": "appGatewayHttpListener",
+                                "ruleType": "Basic",
+                                "backendAddressPoolName": "appGatewayBackendPool"
+                            },
+                            {
+                                "name": "rule2",
+                                "httpListenerName": "list1",
+                                "ruleType": "Basic",
+                                "backendAddressPoolName": "bp2"
+                            },
+                            {
+                                "name": "pb-rule1",
+                                "httpListenerName": "list2",
+                                "ruleType": "PathBasedRouting",
+                                "urlPathMapName": "pb-rule1"
+                            }
+                        ],
+                        "webApplicationFirewallConfiguration": {
+                            "firewallMode": "Prevention",
+                            "ruleSetType": "OWASP",
+                            "ruleSetVersion": "3.0"
+                        }
+                    }
+                }
+            ]
+        },
+        "publicIpAddresses": {
+            "value": [
+                {
+                    "properties": {
+                        "privateIPAllocationMethod": "Dynamic",
+                        "publicIPAddress": "appGatewayFrontendIP"
+                    },
+                    "name": "appGatewayFrontendIP"
+                }
+            ]
+        },
+        "deploymentContext": {
+            "value": {
+                "parentTemplateUniqueString": "bb-000",
+                "sasToken": ""
+            }
+        }
+    }
+}

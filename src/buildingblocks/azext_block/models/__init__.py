@@ -10,6 +10,28 @@ from .load_balancer import (
     LoadBalancerBuildingBlock
 )
 
+"""
+from .network_interface import (
+    NetworkInterface,
+    NetworkInterfaceBuildingBlock
+)
+
+from .virtual_machine import (
+    VirtualMachine,
+    VirtualMachineBuildingBlock
+)
+"""
+
+from .virtual_machine_extension import (
+    VirtualMachineExtension,
+    VirtualMachineExtensionBuildingBlock,
+    Extension
+)
+from .virtual_network import (
+    VirtualNetwork,
+    VirtualNetworkBuildingBlock
+)
+
 from .virtual_network_gateway import (
     VirtualNetworkGateway,
     VirtualNetworkGatewayBuildingBlock
@@ -54,4 +76,30 @@ from .virtual_network import (
     VirtualNetwork,
     VirtualNetworkPeering,
     VirtualNetworkBuildingBlock
+)
+
+from .application_gateway import (
+    ApplicationGatewayBuildingBlock,
+    ApplicationGateway,
+    Sku,
+    GatewayIPConfiguration,
+    FrontendIPConfiguration,
+    InternalApplicationGatewaySetting,
+    BackendAddressPool,
+    BackendAddress,
+    BackendHttpSettings,
+    ConnectionDraining,
+    HttpListener,
+    RedirectConfiguration,
+    UrlPathMap,
+    PathRule,
+    RequestRoutingRule,
+    WebApplicationFirewallConfiguration,
+    DisabledRuleGroup,
+    Probe,
+    Match,
+    SslCertificate,
+    AuthenticationCertificate,
+    SslPolicy,
+    FrontendPort
 )
