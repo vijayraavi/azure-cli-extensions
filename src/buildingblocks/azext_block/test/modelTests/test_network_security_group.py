@@ -1,5 +1,10 @@
 import unittest
-from models.network_security_group import (NetworkSecurityGroup, SecurityRule)
+from azext_block.models import (NetworkSecurityGroup, SecurityRule)
+#from models.network_security_group import (NetworkSecurityGroup, SecurityRule)
+
+class SimpleTest(unittest.TestCase):
+    def test_works(self):
+        self.assertTrue(True)
 
 class BaseTestCase(unittest.TestCase):
     _invalid_string_arguments = frozenset([None, "", " ", "NOT_VALID"])
@@ -14,8 +19,9 @@ class SecurityRuleIsValidProtocolTestCase(BaseTestCase):
     test_invalid_string_arguments = lambda self: self._test_invalid_string_arguments(SecurityRule._is_valid_protocol)
 
     def test_valid(self):
-        diff = SecurityRule._valid_protocols ^ self._valid_protocols_test
-        self.assertEqual(len(diff), 0, "Values not in both sets: {}".format(",".join(diff)))
+        #diff = SecurityRule._valid_protocols ^ self._valid_protocols_test
+        self.assertCountEqual(SecurityRule._valid_protocols, self._valid_protocols_test)
+        #self.assertEqual(len(diff), 0, "Values not in both sets: {}".format(",".join(diff)))
         for value in self._valid_protocols_test:
             with self.subTest(arg=value):
                 self.assertTrue(SecurityRule._is_valid_protocol(value))

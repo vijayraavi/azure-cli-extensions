@@ -1,5 +1,5 @@
 import unittest
-from validations.networking import (is_valid_ip_address, is_valid_cidr, is_valid_port_range)
+from azext_block.validations.networking import (is_valid_ip_address, is_valid_cidr, is_valid_port_range)
 
 class IsValidIpAddressTestCase(unittest.TestCase):
     def test_none(self):

@@ -1,4 +1,4 @@
-from .network_security_group import (
+from .test_network_security_group import (
     SecurityRuleIsValidProtocolTestCase,
     SecurityRuleIsValidAddressPrefixTestCase,
     SecurityRuleIsValidDirectionTestCase,
