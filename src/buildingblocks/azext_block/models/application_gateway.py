@@ -1,6 +1,5 @@
 # TODO: Validations: -
 # A pool can contain only one of these three: IPs in BackendAddresses array, IPConfigurations of standalone Network Interfaces
-# Size based on WAF or Standard
 # Disabled rule group
 # IP or FQDN
 # More than 2 front end ip configurations - 1 public, 1 private
@@ -21,8 +20,10 @@ from .resources import (Resource,
                         ResourceId,
                         TaggedResource,
                         TopLevelResource,
+                        ResourceReference,
                         convert_string_to_enum,
-                        extract_resource_groups)
+                        extract_resource_groups,
+                        BuildingBlockModel)
 
 from azure.mgmt.network.models import (
     SubResource,
@@ -80,12 +81,12 @@ class ApplicationGatewayBuildingBlock(BuildingBlock):
 
     def transform(self):
         public_ip_addresses = self.get_ip_addresses(self.settings)
-        application_gateways = [application_gateway.transform(application_gateway.additional_properties['virtualNetwork']['name']) for application_gateway in self.settings]
+        application_gateways = [application_gateway.transform() for application_gateway in self.settings]
 
         resource_groups = extract_resource_groups(application_gateways)
         template_parameters = {
-            'applicationGateways': application_gateways,
-            'publicIpAddresses': public_ip_addresses
+            "applicationGateways": application_gateways,
+            "publicIpAddresses": public_ip_addresses
         }
 
         return resource_groups, template_parameters
@@ -105,9 +106,9 @@ class ApplicationGatewayBuildingBlock(BuildingBlock):
                     'subscription_id': self.subscription_id,
                     'resource_group_name': self.resource_group_name,
                     'location': self.location,
-                    'name': "{}-{}".format(application_gateway.name, ip_address.name),
+                    'name': '{}-{}-pip'.format(application_gateway.name, ip_address.name),
                     'public_ip_allocation_method': 'Dynamic',
-                    'public_ip_address_version': "IPv4",
+                    'public_ip_address_version': 'IPv4',
                     'idle_timeout_in_minutes': None,
                     'zones': None,
                     'domain_name_label': None
@@ -118,67 +119,60 @@ class ApplicationGatewayBuildingBlock(BuildingBlock):
         
         return public_ip_addresses
 
-@ResourceId(namespace="Microsoft.Network", type="ApplicationGateways")
+@ResourceId(namespace='Microsoft.Network', type='ApplicationGateways')
 class ApplicationGateway(TaggedResource, TopLevelResource, Resource):
     _attribute_map = {
-        "sku": {"key": "sku", "type": "Sku"},
-        "gateway_ip_configurations": {"key": "gatewayIPConfigurations", "type": "[GatewayIPConfiguration]"},
-        "ssl_certificates": {"key": "sslCertificates", "type": "[SslCertificate]"},
-        "authentication_certificates": {"key": "authenticationCertificates", "type": "[AuthenticationCertificate]"},
-        "frontend_ip_configurations": {"key": "frontendIPConfigurations", "type": "[FrontendIPConfiguration]", "parent": "application_gateway"},
-        "frontend_ports": {"key": "frontendPorts", "type": "[FrontendPort]"},
-        "backend_address_pools": {"key": "backendAddressPools", "type": "[BackendAddressPool]"},
-        "backend_http_settings_collection": {"key": "backendHttpSettingsCollection", "type": "[BackendHttpSettings]", "parent": "application_gateway"},
-        "http_listeners": {"key": "httpListeners", "type": "[HttpListener]", 'parent': 'application_gateway'},
-        "url_path_maps": {"key": "urlPathMaps", "type": "[UrlPathMap]", 'parent': 'application_gateway'},
-        "request_routing_rules": {"key": "requestRoutingRules", "type": "[RequestRoutingRule]", "parent": "application_gateway"},
-        "probes": {"key": "probes", "type": "[Probe]"},
-        "redirect_configurations": {"key": "redirectConfigurations", "type": "[RedirectConfiguration]"},
-        "web_application_firewall_configuration": {"key": "webApplicationFirewallConfiguration", "type": "WebApplicationFirewallConfiguration"},
-        "ssl_policy": {"key": "sslPolicy", "type": "SslPolicy"}
+        'sku': {'key': 'sku', 'type': 'Sku'},
+        'virtual_network': {'key': 'virtualNetwork', 'type': 'ResourceReference'},
+        'gateway_ip_configurations': {'key': 'gatewayIPConfigurations', 'type': '[GatewayIPConfiguration]', 'parent': 'application_gateway'},
+        'ssl_certificates': {'key': 'sslCertificates', 'type': '[SslCertificate]'},
+        'authentication_certificates': {'key': 'authenticationCertificates', 'type': '[AuthenticationCertificate]'},
+        'frontend_ip_configurations': {'key': 'frontendIPConfigurations', 'type': '[FrontendIPConfiguration]', 'parent': 'application_gateway'},
+        'frontend_ports': {'key': 'frontendPorts', 'type': '[FrontendPort]'},
+        'backend_address_pools': {'key': 'backendAddressPools', 'type': '[BackendAddressPool]'},
+        'backend_http_settings_collection': {'key': 'backendHttpSettingsCollection', 'type': '[BackendHttpSettings]', 'parent': 'application_gateway'},
+        'http_listeners': {'key': 'httpListeners', 'type': '[HttpListener]', 'parent': 'application_gateway'},
+        'url_path_maps': {'key': 'urlPathMaps', 'type': '[UrlPathMap]', 'parent': 'application_gateway'},
+        'request_routing_rules': {'key': 'requestRoutingRules', 'type': '[RequestRoutingRule]', 'parent': 'application_gateway'},
+        'probes': {'key': 'probes', 'type': '[Probe]'},
+        'redirect_configurations': {'key': 'redirectConfigurations', 'type': '[RedirectConfiguration]'},
+        'web_application_firewall_configuration': {'key': 'webApplicationFirewallConfiguration', 'type': 'WebApplicationFirewallConfiguration'},
+        'ssl_policy': {'key': 'sslPolicy', 'type': 'SslPolicy'}
     }
 
-    def __init__(self, sku=None, gateway_ip_configurations=None, frontend_ip_configurations=None, backend_address_pools=None, backend_http_settings_collection=None, http_listeners=None, redirect_configurations=None, url_path_maps=None, request_routing_rules=None, web_application_firewall_configuration=None, probes=None, ssl_certificates=None, authentication_certificates=None, frontend_ports=None, ssl_policy=None, **kwargs):
+    def __init__(self, sku=None, virtual_network=None, gateway_ip_configurations=None, frontend_ip_configurations=None, backend_address_pools=None, backend_http_settings_collection=None, http_listeners=None, redirect_configurations=None, url_path_maps=None, request_routing_rules=None, web_application_firewall_configuration=None, probes=None, ssl_certificates=None, authentication_certificates=None, frontend_ports=None, ssl_policy=None, **kwargs):
          super(ApplicationGateway, self).__init__(**kwargs)
          self.sku = sku.transform() if sku else None
-         self.gateway_ip_configurations = gateway_ip_configurations if gateway_ip_configurations else None
-         self.frontend_ip_configurations = frontend_ip_configurations if frontend_ip_configurations else None
-         self.backend_address_pools = backend_address_pools if backend_address_pools else None
-         self.backend_http_settings_collection = backend_http_settings_collection if backend_http_settings_collection else None
-         self.http_listeners = http_listeners if http_listeners else None
-         self.redirect_configurations = redirect_configurations if redirect_configurations else None
-         self.url_path_maps = url_path_maps if url_path_maps else None
-         self.request_routing_rules = request_routing_rules if request_routing_rules else None
-         self.web_application_firewall_configuration = web_application_firewall_configuration.transform() if web_application_firewall_configuration else None
-         self.probes = probes if probes else None
-         self.ssl_certificates = ssl_certificates if ssl_certificates else None
-         self.authentication_certificates = authentication_certificates if authentication_certificates else None
-         self.frontend_ports = frontend_ports if frontend_ports else None
-         self.ssl_policy = ssl_policy.transform() if ssl_policy else None
+         self.virtual_network = virtual_network if virtual_network else None
+         self.gateway_ip_configurations = gateway_ip_configurations if gateway_ip_configurations is not None else []
+         self.frontend_ip_configurations = frontend_ip_configurations if frontend_ip_configurations is not None else []
+         self.backend_address_pools = backend_address_pools if backend_address_pools is not None else []
+         self.backend_http_settings_collection = backend_http_settings_collection if backend_http_settings_collection is not None else []
+         self.http_listeners = http_listeners if http_listeners is not None else []
+         self.redirect_configurations = redirect_configurations if redirect_configurations is not None else []
+         self.url_path_maps = url_path_maps if url_path_maps is not None else []
+         self.request_routing_rules = request_routing_rules if request_routing_rules is not None else []
+         self.web_application_firewall_configuration = web_application_firewall_configuration.transform() if web_application_firewall_configuration is not None else []
+         self.probes = probes if probes is not None else []
+         self.ssl_certificates = ssl_certificates if ssl_certificates is not None else []
+         self.authentication_certificates = authentication_certificates if authentication_certificates is not None else []
+         self.frontend_ports = frontend_ports if frontend_ports is not None else []
+         self.ssl_policy = ssl_policy.transform() if ssl_policy is not None else []
          self._validation.update({
-             "sku": {"required": True},
-             "gateway_ip_configurations": {"required": True, "min_items": 1},
-             "frontend_ip_configurations": {"required": True, "min_items": 1},
-             "backend_address_pools": {"required": True, "min_items": 1},
-             "backend_http_settings_collection": {"required": True, "min_items": 1},
-             "http_listeners": {"required": True, "min_items": 1},
-             "redirect_configurations": {"required": True, "min_items": 1},
-             "url_path_maps": {"required": True, "min_items": 1},
-             "requesting_routing_rules": {"required": True, "min_items": 1},
-             "web_application_firewall_configuration": {"required": True},
-             "probes": {"required": True, "min_items": 1},
-             "ssl_certificates": {"required": True, "min_items": 1},
-             "frontend_ports": {"required": True, "min_items": 1}
+             'sku': {'required': True},
+             'gateway_ip_configurations': {'required': True, 'min_items': 1},
+             'frontend_ip_configurations': {'required': True, 'min_items': 1, 'max_items': 2, 'custom': self._is_valid_frontend_ip_configurations},
+             'backend_address_pools': {'required': True, 'min_items': 1},
+             'backend_http_settings_collection': {'required': True, 'min_items': 1},
+             'http_listeners': {'required': True, 'min_items': 1},
+             'url_path_maps': {'required': True, 'min_items': 1, 'custom': self._is_valid_url_path_map_setting},
+             'requesting_routing_rules': {'custom': self._is_valid_request_routing_rule},
+             'web_application_firewall_configuration': {'required': True},
+             'probes': {'required': True, 'min_items': 1},
+             'frontend_ports': {'required': True, 'min_items': 1}
          })
 
-    def transform(self, vn=None):
-
-        if self.ssl_certificates != None:
-            self.ssl_certificates = [s.transform for s in self.ssl_certificates]
-
-        if self.redirect_configurations != None:
-            self.redirect_configurations = [r.transform() for r in self.redirect_configurations]
-
+    def transform(self):
         factory = ApplicationGatewayBuildingBlock.get_sdk_model(ApplicationGatewaySdk)
         model = factory(
             name = self.name,
@@ -187,10 +181,10 @@ class ApplicationGateway(TaggedResource, TopLevelResource, Resource):
             location = self.location,
             sku = self.sku,
             ssl_policy = self.ssl_policy,
-            gateway_ip_configurations = [g.transform(vn) for g in self.gateway_ip_configurations],
+            gateway_ip_configurations = [g.transform() for g in self.gateway_ip_configurations],
             authentication_certificates = [a.transform() for a in self.authentication_certificates],
-            ssl_certificates = self.ssl_certificates,
-            frontend_ip_configurations = [f.transform(vn) for f in self.frontend_ip_configurations],
+            ssl_certificates = [s.transform() for s in self.ssl_certificates],
+            frontend_ip_configurations = [f.transform() for f in self.frontend_ip_configurations],
             frontend_ports = [f.transform() for f in self.frontend_ports],
             probes = [p.transform() for p in self.probes],
             backend_address_pools = [b.transform() for b in self.backend_address_pools],
@@ -198,16 +192,39 @@ class ApplicationGateway(TaggedResource, TopLevelResource, Resource):
             http_listeners = [l.transform() for l in self.http_listeners],
             url_path_maps = [u.transform() for u in self.url_path_maps],
             request_routing_rules = [r.transform() for r in self.request_routing_rules],
-            redirect_configurations = self.redirect_configurations,
+            redirect_configurations = [r.transform() for r in self.redirect_configurations],
             web_application_firewall_configuration = self.web_application_firewall_configuration
         )
         return model
 
+    @ValidationFunction('There can be only 2 frontendIPConfigurations, 1 private and 1 public')
+    def _is_valid_frontend_ip_configurations(self, value):
+        if len(self.frontend_ip_configurations) < 2:
+            return True
+        elif self.frontend_ip_configurations[0].application_gateway_type != self.frontend_ip_configurations[1].application_gateway_type:
+            return True
+        else:
+            return False
+
+    @ValidationFunction()
+    def _is_valid_url_path_map_setting(self, value):
+        if value[0].default_backend_address_pool_name != None and value[0].default_redirect_configuration_name != None:
+            return False, 'Value cannot be specified if defaultRedirectConfigurationName is defined'
+        elif value[0].default_backend_http_settings_name != None and value[0].default_redirect_configuration_name != None:
+            return False, 'Value cannot be specified if defaultRedirectConfigurationName is defined'
+        else:
+            return True
+
+    @ValidationFunction()
+    def _is_valid_request_routing_rule(self, value):
+        return False
+    
+
 class Sku(Resource):
     _attribute_map = {
-        "size": {"key": "size", "type": "str"},
-        "capacity": {"key": "capacity", "type": "int"},
-        "tier": {"key": "tier", "type": "str"}
+        'size': {'key': 'size', 'type': 'str'},
+        'capacity': {'key': 'capacity', 'type': 'int'},
+        'tier': {'key': 'tier', 'type': 'str'}
     }
 
     _valid_sizes = frozenset([e.value for e in ApplicationGatewaySkuName])
@@ -215,49 +232,40 @@ class Sku(Resource):
 
     def __init__(self, size=None, capacity=None, tier=None, **kwargs):
          super(Sku, self).__init__(**kwargs)
-         self.tier = tier if tier else "Standard"
-         self.size = size if size else "Medium" if tier == "WAF" else "Small"
+         self.tier = tier if tier else 'Standard'
+         self.size = size if size else 'Medium' if tier == 'WAF' else 'Small'
          self.capacity = capacity if capacity else None
          self._validation.update({
-             "capacity": {"required": True, "custom": Sku._is_valid_capacity},
-             "tier": {"required": True, "custom": Sku._is_valid_tier}
+             'capacity': {'required': True, 'custom': self._is_valid_capacity},
+             'tier': {'required': True, 'custom': self._is_valid_tier}
          })
 
     def transform(self):
         factory = ApplicationGatewayBuildingBlock.get_sdk_model(ApplicationGatewaySkuSdk)
         model = factory(
-            name = "{}_{}".format(self.tier, self.size),
+            name = '{}_{}'.format(self.tier, self.size),
             tier = self.tier,
             capacity = self.capacity
         )
         return model
 
-    @classmethod
     @ValidationFunction('Value must be one of the following values: {}'.format(','.join(_valid_sizes)))
     def _is_valid_sku(self, value):
-        print('validate')
-        print(self)
-        value = 'Standard_{}'.format(value)
+        value = '{}_{}'.format(self.application_gateway.sku.tier, value) # pylint: disable=E1101
         if value in self._valid_sizes:
             return True
         else:
             return False
-
-    @classmethod    
+   
     @ValidationFunction()
     def _is_valid_capacity(self, value):
-        print('validate')
-        print(self)
         if value > 0 and value <= 10:
             return True
         else:
             return False
 
-    @classmethod
     @ValidationFunction('Value must be one of the following values: {}'.format(','.join(_valid_tiers)))
     def _is_valid_tier(self, value):
-        print('validate')
-        print(self)
         if value in self._valid_tiers:
             return True
         else:
@@ -265,7 +273,7 @@ class Sku(Resource):
 
 class GatewayIPConfiguration(Resource):
     _attribute_map = {
-        "subnet_name": {"key": "subnetName", "type": "str"}
+        'subnet_name': {'key': 'subnetName', 'type': 'str'}
     }
 
     def __init__(self, subnet_name=None, **kwargs):
@@ -273,18 +281,18 @@ class GatewayIPConfiguration(Resource):
          self.subnet_name = subnet_name if subnet_name else None
 
          self._validation.update({
-             "subnet_name": {"required": True}
+             'subnet_name': {'required': True}
          })
 
-    def transform(self, vn=None):
+    def transform(self):
         if self.subnet_name != None:
             self.subnet_name = SubResource(id=resource_id(
                 subscription=self.additional_properties['subscriptionId'], # pylint: disable=E1101
                 resource_group=self.additional_properties['resourceGroupName'], # pylint: disable=E1101
                 namespace='Microsoft.Network',
                 type='virtualNetworks',
-                name=vn,
-                child_type_1="subnets",
+                name=self.application_gateway.virtual_network.name,  # pylint: disable=E1101
+                child_type_1='subnets',
                 child_name_1=self.subnet_name))
 
         factory = ApplicationGatewayBuildingBlock.get_sdk_model(ApplicationGatewayIPConfigurationSdk)
@@ -298,19 +306,23 @@ class GatewayIPConfiguration(Resource):
 
 class FrontendIPConfiguration(TopLevelResource, Resource):
     _attribute_map = {
-        "application_gateway_type": {"key": "applicationGatewayType", "type": "str"},
-        "internal_application_gateway_settings": {"key": "internalApplicationGatewaySettings", "type": "InternalApplicationGatewaySetting"}
+        'application_gateway_type': {'key': 'applicationGatewayType', 'type': 'str'},
+        'internal_application_gateway_settings': {'key': 'internalApplicationGatewaySettings', 'type': 'InternalApplicationGatewaySetting'},
+        'public_ip_address': {'key': 'publicIPAddress', 'type': 'str'}
     }
     
-    def __init__(self, application_gateway_type=None, internal_application_gateway_settings=None, **kwargs):
+    def __init__(self, application_gateway_type=None, internal_application_gateway_settings=None, public_ip_address=None, **kwargs):
         super(FrontendIPConfiguration, self).__init__(**kwargs)
         self.application_gateway_type = application_gateway_type if application_gateway_type else None
         self.internal_application_gateway_settings = internal_application_gateway_settings if internal_application_gateway_settings else None
+        self.public_ip_address = self.public_ip_address if public_ip_address else None
         self._validation.update({
-            "application_gateway_type": {"required": True, "custom": FrontendIPConfiguration._is_valid_gateway_type}
+            'application_gateway_type': {'required': True, 'custom': self._is_valid_gateway_type},
+            'internal_application_gateway_settings': {'custom': self._is_valid_internal_application_gateway_setting},
+            'public_ip_address': {'custom': self._is_valid_public_ip_address}
         })
 
-    def transform(self, vn):
+    def transform(self):
         factory = ApplicationGatewayBuildingBlock.get_sdk_model(ApplicationGatewayFrontendIPConfigurationSdk)
 
         model = factory(
@@ -321,52 +333,67 @@ class FrontendIPConfiguration(TopLevelResource, Resource):
                 resource_group=self.resource_group_name,
                 namespace='Microsoft.Network',
                 type='publicIPAddresses',
-                name="{}-{}".format(self.application_gateway.name, self.name))) if self.application_gateway_type == 'Public' else None, # pylint: disable=E1101
+                name='{}-{}-pip'.format(self.application_gateway.name, self.name))) if self.application_gateway_type == 'Public' else None, # pylint: disable=E1101
             subnet = SubResource(id=resource_id(
                 subscription=self.subscription_id,
                 resource_group=self.resource_group_name,
                 namespace='Microsoft.Network',
                 type='virtualNetworks',
-                name=vn,
-                child_type_1="subnets",
+                name=self.application_gateway.virtual_network.name,  # pylint: disable=E1101,
+                child_type_1='subnets',
                 child_name_1=self.internal_application_gateway_settings.subnet_name)) if self.internal_application_gateway_settings and self.internal_application_gateway_settings.subnet_name else None
         )
 
         return model
 
-    @classmethod
     @ValidationFunction('Value must be one of the following values: Public, Internal')
     def _is_valid_gateway_type(self, value):
-        types = ["Public", "Internal"]
+        types = ['Public', 'Internal']
 
         if value in types:
             return True
         else:
             return False
 
-class InternalApplicationGatewaySetting(Resource):
+    @ValidationFunction()
+    def _is_valid_internal_application_gateway_setting(self, value):
+        if self.internal_application_gateway_settings != None and self.application_gateway_type == 'Public': # pylint: disable=E1101
+            return False, 'Internal application gateway settings must not be specified for Public gateways'
+        else: 
+            return True
+
+    @ValidationFunction()
+    def _is_valid_public_ip_address(self, value):
+        if value.public_ip_address == None and value.application_gateway_type == 'Public': 
+            return False, 'publicIpAddress must be specified'
+        elif value.application_gateway_type == 'Internal' and value.public_ip_address != None:
+            return False, 'publicIPAddress should not be specified for Internal gateway types'
+        else:
+            return True
+
+class InternalApplicationGatewaySetting(BuildingBlockModel):
     _attribute_map = {
-        "subnet_name": {"key": "subnetName", "type": "str"}
+        'subnet_name': {'key': 'subnetName', 'type': 'str'}
     }
 
     def __init__(self, subnet_name=None, **kwargs):
          super(InternalApplicationGatewaySetting, self).__init__(**kwargs)
          self.subnet_name = subnet_name if subnet_name else None
          self._validation.update({
-             "subnet_name": {"required": True}
+             'subnet_name': {'required': True}
          })        
 
 class BackendAddressPool(Resource):
 
     _attribute_map = {
-        "backend_addresses": {"key": "backendAddresses", "type": "[BackendAddress]"}
+        'backend_addresses': {'key': 'backendAddresses', 'type': '[BackendAddress]'}
     }
 
     def __init__(self, backend_addresses=None, **kwargs):
          super(BackendAddressPool, self).__init__(**kwargs)
-         self.backend_addresses = backend_addresses if backend_addresses else None
+         self.backend_addresses = backend_addresses if backend_addresses is not None else []
          self._validation.update({
-             "backend_addresses": {"required": True, "min_items": 1}
+             'backend_addresses': {'required': True, 'min_items': 1}
          })
 
     def transform(self):
@@ -384,7 +411,7 @@ class BackendAddressPool(Resource):
 
 class BackendAddress(Resource):
     _attribute_map = {
-        "fqdn": {"key": "fqdn", "type": "str"}
+        'fqdn': {'key': 'fqdn', 'type': 'str'}
     }
 
     def __init__(self, fqdn=None, ip_address=None, **kwargs):
@@ -405,18 +432,18 @@ class BackendAddress(Resource):
 
 class BackendHttpSettings(Resource):
     _attribute_map = {
-        "port": {"key": "port", "type": "int"},
-        "protocol": {"key": "protocol", "type": "str"},
-        "cookie_based_affinity": {"key": "cookieBasedAffinity", "type": "str"},
-        "affinity_cookie_name": {"key": "affinityCookieName", "type": "str"},
-        "connection_draining": {"key": "connection_draining", "type": "ConnectionDraining"},
-        "pick_host_name_from_backend_address": {"key": "pickHostNameFromBackendAddress", "type": "bool"},
-        "host_name": {"key": "hostName", "type": "str"},
-        "request_timeout": {"key": "requestTimeout", "type": "int"},
-        "path": {"key": "path", "type": "str"},
-        "host_header_name": {"key": "hostHeaderName", "type": "str"},
-        "probe_enabled": {"key": "probeEnabled", "type": "bool"},
-        "probe_name": {"key": "probeName", "type": "str"}
+        'port': {'key': 'port', 'type': 'int'},
+        'protocol': {'key': 'protocol', 'type': 'str'},
+        'cookie_based_affinity': {'key': 'cookieBasedAffinity', 'type': 'str'},
+        'affinity_cookie_name': {'key': 'affinityCookieName', 'type': 'str'},
+        'connection_draining': {'key': 'connection_draining', 'type': 'ConnectionDraining'},
+        'pick_host_name_from_backend_address': {'key': 'pickHostNameFromBackendAddress', 'type': 'bool'},
+        'host_name': {'key': 'hostName', 'type': 'str'},
+        'request_timeout': {'key': 'requestTimeout', 'type': 'int'},
+        'path': {'key': 'path', 'type': 'str'},
+        'host_header_name': {'key': 'hostHeaderName', 'type': 'str'},
+        'probe_enabled': {'key': 'probeEnabled', 'type': 'bool'},
+        'probe_name': {'key': 'probeName', 'type': 'str'}
     }
 
     _valid_affinity = frozenset([e.value for e in ApplicationGatewayCookieBasedAffinity])
@@ -426,25 +453,22 @@ class BackendHttpSettings(Resource):
          super(BackendHttpSettings, self).__init__(**kwargs)
          self.port = port if port else None
          self.protocol = protocol if protocol else None
-         self.cookie_based_affinity = cookie_based_affinity if cookie_based_affinity else None
+         self.cookie_based_affinity = cookie_based_affinity if cookie_based_affinity else 'Default'
          self.affinity_cookie_name = affinity_cookie_name if affinity_cookie_name else None
          self.connection_draining = connection_draining.transform() if connection_draining else None
-         self.pick_host_name_from_backend_address = pick_host_name_from_backend_address if pick_host_name_from_backend_address else None
+         self.pick_host_name_from_backend_address = pick_host_name_from_backend_address if pick_host_name_from_backend_address else False
          self.host_name = host_name if host_name else None
-         self.request_timeout = request_timeout if request_timeout else None
+         self.request_timeout = request_timeout if request_timeout else 30
          self.path = path if path else None
          self.host_header_name = host_header_name if host_header_name else None
-         self.probe_enabled = probe_enabled if probe_enabled else None
+         self.probe_enabled = probe_enabled if probe_enabled else True
          self.probe_name = probe_name if probe_name else None
          self._validation.update({
-            "port": {"required": True, "custom": is_valid_port_range},
-            "protocol": {"required": True, "custom": BackendHttpSettings._is_valid_protocol},
-            "cookie_based_affinity": {"required": True, "custom": BackendHttpSettings._is_valid_cookie_based_affinity},
-            "connection_draining": {"required": True},
-            "pick_host_name_from_backend_address": {"required": True},
-            "host_name": {"required": True},
-            "request_timeout": {"required": True},
-            "probe_name": {"required": True}
+            'port': {'custom': is_valid_port_range},
+            'protocol': {'custom': BackendHttpSettings._is_valid_protocol},
+            'cookie_based_affinity': {'required': True, 'custom': BackendHttpSettings._is_valid_cookie_based_affinity},
+            'pick_host_name_from_backend_address': {'required': True},
+            'request_timeout': {'required': True},
          })
 
     def transform(self):
@@ -456,7 +480,7 @@ class BackendHttpSettings(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="probes",
+                child_type_1='probes',
                 child_name_1=self.probe_name))
 
         model = factory(
@@ -494,8 +518,8 @@ class BackendHttpSettings(Resource):
 
 class ConnectionDraining(Resource):
     _attribute_map = {
-        "enabled": {"key": "enabled", "type": "bool"},
-        "drain_timeout_in_sec": {"key": "drainTimeoutInSec", "type": "int"}
+        'enabled': {'key': 'enabled', 'type': 'bool'},
+        'drain_timeout_in_sec': {'key': 'drainTimeoutInSec', 'type': 'int'}
     }
 
     def __init__(self, enabled=None, drain_timeout_in_sec=None, **kwargs):
@@ -515,11 +539,11 @@ class ConnectionDraining(Resource):
         
 class HttpListener(Resource):
     _attribute_map = {
-        "frontend_ip_configuration_name": {"key": "frontendIPConfigurationName", "type": "str"},
-        "frontend_port_name": {"key": "frontendPortName", "type": "str"},
-        "protocol": {"key": "protocol", "type": "str"},
-        "ssl_certificate_name": {"key": "sslCertificateName", "type": "str"},
-        "require_server_name_indication": {"key": "requireServerNameIndication", "type": "bool"}
+        'frontend_ip_configuration_name': {'key': 'frontendIPConfigurationName', 'type': 'str'},
+        'frontend_port_name': {'key': 'frontendPortName', 'type': 'str'},
+        'protocol': {'key': 'protocol', 'type': 'str'},
+        'ssl_certificate_name': {'key': 'sslCertificateName', 'type': 'str'},
+        'require_server_name_indication': {'key': 'requireServerNameIndication', 'type': 'bool'}
     }
 
     _valid_protocol_types = frozenset([e.value for e in ApplicationGatewayProtocol])
@@ -530,13 +554,10 @@ class HttpListener(Resource):
         self.frontend_port_name = frontend_port_name if frontend_port_name else None
         self.protocol = protocol if protocol else None
         self.ssl_certificate_name = ssl_certificate_name if ssl_certificate_name else None
-        self.require_server_name_indication = require_server_name_indication if require_server_name_indication else None
+        self.require_server_name_indication = require_server_name_indication if require_server_name_indication else False
         self._validation.update({
-            "frontend_ip_configuration_name": {"required": True},
-            "frontend_port_name": {"required": True},
-            "protocol": {"required": True, "custom": HttpListener._is_valid_protocol},
-            "ssl_certificate_name": {"required": True},
-            "require_server_name_indication": {"required": True}
+            'protocol': {'custom': HttpListener._is_valid_protocol},
+            'require_server_name_indication': {'required': True}
         })
 
     def transform(self):
@@ -550,7 +571,7 @@ class HttpListener(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="frontendIPConfigurations",
+                child_type_1='frontendIPConfigurations',
                 child_name_1=self.frontend_ip_configuration_name)),
             frontend_port = SubResource(id=resource_id(
                 subscription=self.additional_properties['subscriptionId'], # pylint: disable=E1101
@@ -558,7 +579,7 @@ class HttpListener(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="frontendPorts",
+                child_type_1='frontendPorts',
                 child_name_1=self.frontend_port_name)),
             protocol = self.protocol,
             ssl_certificate = self.ssl_certificate_name,
@@ -578,11 +599,11 @@ class HttpListener(Resource):
 
 class RedirectConfiguration(Resource):
     _attribute_map = {
-        "redirect_type": {"key": "redirectType", "type": "str"},
-        "include_query_string": {"key": "includeQueryString", "type": "bool"},
-        "target_listener_name": {"key": "targetListenerName", "type": "str"},
-        "include_path": {"key": "includePath", "type": "bool"},
-        "target_url": {"key": "targetUrl", "type": "str"}    
+        'redirect_type': {'key': 'redirectType', 'type': 'str'},
+        'include_query_string': {'key': 'includeQueryString', 'type': 'bool'},
+        'target_listener_name': {'key': 'targetListenerName', 'type': 'str'},
+        'include_path': {'key': 'includePath', 'type': 'bool'},
+        'target_url': {'key': 'targetUrl', 'type': 'str'}    
     }
 
     _redirect_types = frozenset([e.value for e in ApplicationGatewayRedirectType])
@@ -595,10 +616,10 @@ class RedirectConfiguration(Resource):
         self.include_path = include_path if include_path else None
         self.target_url = target_url if target_url else None
         self._validation.update({
-            "redirect_type": {"required": True, "custom": RedirectConfiguration._is_valid_redirect_type},
-            "include_query_string": {"required": True},
-            "target_listener_name": {"required": True},
-            "target_url": {"required": True}
+            'redirect_type': {'required': True, 'custom': self._is_valid_redirect_type},
+            'include_query_string': {'required': True},
+            'target_listener_name': {'custom': self._is_valid_target_listener_name},
+            'target_url': {'custom': self._is_valid_target_url}
         })
 
     def transform(self):
@@ -614,7 +635,6 @@ class RedirectConfiguration(Resource):
 
         return model
 
-    @classmethod
     @ValidationFunction('Value must be one of the following values: {}'.format(','.join(_redirect_types)))
     def _is_valid_redirect_type(self, value):
         
@@ -623,12 +643,34 @@ class RedirectConfiguration(Resource):
         else:
             return False
 
+    @ValidationFunction('Either targetUrl or targetListenerName must be specified, but not both')
+    def _is_valid_target_url(self, value):
+        if self.target_listener_name != None and value != None:
+            return False
+        
+        else:
+            return True
+
+    @ValidationFunction('Either targetListenerName or targetUrl must be specified, but not both')
+    def _is_valid_target_listener_name(self, value):
+        if self.target_url != None and value != None:
+            return False
+        else:
+            return True
+
+    @ValidationFunction('Value cannot be specified if targetUrl is specified')
+    def _is_valid_include_path(self, value):
+        if self.target_url != None and value != None:
+            return False
+        else:
+            return True
+
 class UrlPathMap(Resource): 
     _attribute_map = {
-        "default_backend_address_pool_name": {"key": "defaultBackendAddressPoolName", "type": "str"},
-        "default_backend_http_settings_name": {"key": "defaultBackendHttpSettingsName", "type": "str"},
-        "default_redirect_configuration_name": {"key": "defaultRedirectConfigurationName", "type": "str"},
-        "path_rules": {"key": "pathRules", "type": "[PathRule]", "parent": "url_path_map"}
+        'default_backend_address_pool_name': {'key': 'defaultBackendAddressPoolName', 'type': 'str'},
+        'default_backend_http_settings_name': {'key': 'defaultBackendHttpSettingsName', 'type': 'str'},
+        'default_redirect_configuration_name': {'key': 'defaultRedirectConfigurationName', 'type': 'str'},
+        'path_rules': {'key': 'pathRules', 'type': '[PathRule]', 'parent': 'url_path_map'}
     }
 
     def __init__(self, default_backend_address_pool_name=None, default_backend_http_settings_name=None, default_redirect_configuration_name=None, path_rules=None, **kwargs):
@@ -636,12 +678,9 @@ class UrlPathMap(Resource):
         self.default_backend_address_pool_name = default_backend_address_pool_name if default_backend_address_pool_name else None
         self.default_backend_http_settings_name = default_backend_http_settings_name if default_backend_http_settings_name else None
         self.default_redirect_configuration_name = default_redirect_configuration_name if default_redirect_configuration_name else None
-        self.path_rules = path_rules if path_rules else None
+        self.path_rules = path_rules if path_rules is not None else []
         self._validation.update({
-            "default_backend_address_pool_name": {"required": True},
-            "default_backend_http_settings_name":  {"required": True},
-            "default_redirect_configuration_name":  {"required": True},
-            "path_rules":  {"required": True, "min_items": 1}
+            'path_rules':  {'required': True, 'min_items': 1, 'custom': self._is_valid_path_rule}
         })
 
     def transform(self):
@@ -654,7 +693,7 @@ class UrlPathMap(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="redirectConfigurations",
+                child_type_1='redirectConfigurations',
                 child_name_1=self.default_redirect_configuration_name))
 
         model = factory(
@@ -665,7 +704,7 @@ class UrlPathMap(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="backendAddressPools",
+                child_type_1='backendAddressPools',
                 child_name_1=self.default_backend_address_pool_name)),
             default_backend_http_settings = SubResource(id=resource_id(
                 subscription=self.additional_properties['subscriptionId'], # pylint: disable=E1101
@@ -673,20 +712,29 @@ class UrlPathMap(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="backendHttpSettingsCollection",
+                child_type_1='backendHttpSettingsCollection',
                 child_name_1=self.default_backend_http_settings_name)),
             default_redirect_configuration = self.default_redirect_configuration_name,
-            path_rules = [p.transform(self.application_gateway) for p in self.path_rules] # pylint: disable=E1101
+            path_rules = [p.transform() for p in self.path_rules] # pylint: disable=E1101
         )
         
         return model
 
+    @ValidationFunction()
+    def _is_valid_path_rule(self, value):
+        if value[0].backend_address_pool_name != None and value[0].redirect_configuration_name != None:
+            return False, 'Value cannot be specified if redirectConfigurationName is defined'
+        elif value[0].backend_http_settings_name != None and value[0].redirect_configuration_name != None:
+            return False, 'Value cannot be specified if redirectConfigurationName is defined'
+        else:
+            return True
+
 class PathRule(Resource):
     _attribute_map = {
-        "paths": {"key": "paths", "type": "[str]"},
-        "backend_address_pool_name": {"key": "backendAddressPoolName", "type": "str"},
-        "backend_http_settings_name": {"key": "backendHttpSettingsName", "type": "str"},
-        "redirect_configuration_name": {"key": "redirectConfigurationName", "type": "str"}
+        'paths': {'key': 'paths', 'type': '[str]'},
+        'backend_address_pool_name': {'key': 'backendAddressPoolName', 'type': 'str'},
+        'backend_http_settings_name': {'key': 'backendHttpSettingsName', 'type': 'str'},
+        'redirect_configuration_name': {'key': 'redirectConfigurationName', 'type': 'str'}
     }
 
     def __init__(self, paths=None, backend_address_pool_name=None, backend_http_settings_name=None, redirect_configuration_name=None, **kwargs):
@@ -696,13 +744,12 @@ class PathRule(Resource):
         self.backend_http_settings_name = backend_http_settings_name if backend_http_settings_name else None
         self.redirect_configuration_name = redirect_configuration_name if redirect_configuration_name else None
         self._validation.update({
-            "paths": {"required": True, "min_items": 1},
-            "backend_address_pool_name": {"required": True},
-            "backend_http_settings_name": {"required": True},
-            "redirect_configuration_name": {"required": True}
+            'paths': {'required': True, 'min_items': 1},
+            'backend_address_pool_name': {'required': True},
+            'backend_http_settings_name': {'required': True}
         })
 
-    def transform(self, application_gateway):
+    def transform(self):
         factory = ApplicationGatewayBuildingBlock.get_sdk_model(ApplicationGatewayPathRuleSdk)
 
         if self.backend_address_pool_name != None:
@@ -711,8 +758,8 @@ class PathRule(Resource):
                 resource_group=self.additional_properties['resourceGroupName'], # pylint: disable=E1101
                 namespace='Microsoft.Network',
                 type='applicationGateways',
-                name=application_gateway.name,
-                child_type_1="backendAddressPools",
+                name=self.url_path_map.application_gateway.name, # pylint: disable=E1101
+                child_type_1='backendAddressPools',
                 child_name_1=self.backend_address_pool_name))
 
         if self.backend_http_settings_name != None:
@@ -721,8 +768,8 @@ class PathRule(Resource):
                 resource_group=self.additional_properties['resourceGroupName'], # pylint: disable=E1101
                 namespace='Microsoft.Network',
                 type='applicationGateways',
-                name=application_gateway.name,
-                child_type_1="backendHttpSettingsCollection",
+                name=self.url_path_map.application_gateway.name, # pylint: disable=E1101
+                child_type_1='backendHttpSettingsCollection',
                 child_name_1=self.backend_http_settings_name))
 
         if self.redirect_configuration_name != None:
@@ -731,8 +778,8 @@ class PathRule(Resource):
                 resource_group=self.additional_properties['resourceGroupName'], # pylint: disable=E1101
                 namespace='Microsoft.Network',
                 type='applicationGateways',
-                name=application_gateway.name,
-                child_type_1="redirectConfigurations",
+                name=self.url_path_map.application_gateway.name, # pylint: disable=E1101
+                child_type_1='redirectConfigurations',
                 child_name_1=self.redirect_configuration_name))
 
         model = factory (
@@ -747,12 +794,12 @@ class PathRule(Resource):
 
 class RequestRoutingRule(Resource):
     _attribute_map = {
-        "http_listener_name": {"key": "httpListenerName", "type": "str"},
-        "rule_type": {"key": "ruleType", "type": "str"},
-        "backend_address_pool_name": {"key": "backendAddressPoolName", "type": "str"},
-        "backend_http_settings_name": {"key": "backendHttpSettingsName", "type": "str"},
-        "redirect_configuration_name": {"key": "redirectConfigurationName", "type": "str"},
-        "url_path_map_name": {"key": "urlPathMapName", "type": "str"}
+        'http_listener_name': {'key': 'httpListenerName', 'type': 'str'},
+        'rule_type': {'key': 'ruleType', 'type': 'str'},
+        'backend_address_pool_name': {'key': 'backendAddressPoolName', 'type': 'str'},
+        'backend_http_settings_name': {'key': 'backendHttpSettingsName', 'type': 'str'},
+        'redirect_configuration_name': {'key': 'redirectConfigurationName', 'type': 'str'},
+        'url_path_map_name': {'key': 'urlPathMapName', 'type': 'str'}
     }
 
     _valid_routing_rule_types = frozenset([e.value for e in ApplicationGatewayRequestRoutingRuleType])
@@ -766,12 +813,8 @@ class RequestRoutingRule(Resource):
         self.redirect_configuration_name = redirect_configuration_name if redirect_configuration_name else None
         self.url_path_map_name = url_path_map_name if url_path_map_name else None
         self._validation.update({
-            "http_listener_name": {"required": True},
-            "rule_type": {"required": True, "custom": RequestRoutingRule._is_valid_routing_rule_type},
-            "backend_address_pool_name": {"required": True},
-            "backend_http_settings_name": {"required": True},
-            "redirect_configuration_name": {"required": True},
-            "url_path_map_name": {"required": True}
+            'http_listener_name': {'required': True},
+            'rule_type': {'required': True, 'custom': RequestRoutingRule._is_valid_routing_rule_type}
         })
 
     def transform(self):
@@ -782,7 +825,7 @@ class RequestRoutingRule(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="httpListeners",
+                child_type_1='httpListeners',
                 child_name_1=self.http_listener_name))
         if self.backend_address_pool_name != None:
             self.backend_address_pool_name =  SubResource(id=resource_id(
@@ -791,7 +834,7 @@ class RequestRoutingRule(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="backendAddressPools",
+                child_type_1='backendAddressPools',
                 child_name_1=self.backend_address_pool_name))
         if self.backend_http_settings_name != None:
             self.backend_http_settings_name = SubResource(id=resource_id(
@@ -800,7 +843,7 @@ class RequestRoutingRule(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="backendHttpSettingsCollection",
+                child_type_1='backendHttpSettingsCollection',
                 child_name_1=self.backend_http_settings_name))
         if self.url_path_map_name != None:
             self.url_path_map_name = SubResource(id=resource_id(
@@ -809,7 +852,7 @@ class RequestRoutingRule(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="urlPathMaps",
+                child_type_1='urlPathMaps',
                 child_name_1=self.url_path_map_name))
         if self.redirect_configuration_name != None:
             self.redirect_configuration_name = SubResource(id=resource_id(
@@ -818,7 +861,7 @@ class RequestRoutingRule(Resource):
                 namespace='Microsoft.Network',
                 type='applicationGateways',
                 name=self.application_gateway.name, # pylint: disable=E1101
-                child_type_1="urlPathMaps",
+                child_type_1='urlPathMaps',
                 child_name_1=self.redirect_configuration_name))
             
         factory = ApplicationGatewayBuildingBlock.get_sdk_model(ApplicationGatewayRequestRoutingRuleSdk)
@@ -846,11 +889,11 @@ class RequestRoutingRule(Resource):
 
 class WebApplicationFirewallConfiguration(Resource):
     _attribute_map = {
-        "enabled": {"key": "enabled", "type": "bool"},
-        "firewall_mode": {"key": "firewallMode", "type": "str"},
-        "rule_set_type": {"key": "ruleSetType", "type": "str"},
-        "rule_set_version": {"key": "ruleSetVersion", "type": "str"},
-        "disabled_rule_groups": {"key": "disabledRuleGroups", "type": "[DisabledRuleGroup]"}
+        'enabled': {'key': 'enabled', 'type': 'bool'},
+        'firewall_mode': {'key': 'firewallMode', 'type': 'str'},
+        'rule_set_type': {'key': 'ruleSetType', 'type': 'str'},
+        'rule_set_version': {'key': 'ruleSetVersion', 'type': 'str'},
+        'disabled_rule_groups': {'key': 'disabledRuleGroups', 'type': '[DisabledRuleGroup]'}
     }
 
     _valid_firewall_mode = frozenset([e.value for e in ApplicationGatewayFirewallModeSdk])
@@ -861,13 +904,13 @@ class WebApplicationFirewallConfiguration(Resource):
         self.firewall_mode = firewall_mode if firewall_mode else None
         self.rule_set_type = rule_set_type if rule_set_type else 'OWASP'
         self.rule_set_version = rule_set_version if rule_set_version else None
-        self.disabled_rule_groups = disabled_rule_groups.transform() if disabled_rule_groups else None
+        self.disabled_rule_groups = disabled_rule_groups if disabled_rule_groups is not None else []
         self._validation.update({
-            "enabled": {"required": True},
-            "firewall_mode": {"required": True, "custom": WebApplicationFirewallConfiguration._is_valid_firewall_mode},
-            "rule_set_type": {"required": True, "custom": WebApplicationFirewallConfiguration._is_valid_rule_type},
-            "rule_set_version": {"required": True},
-            "disabled_rule_groups": {"required": True, "min_items": 1}
+            'enabled': {'required': True},
+            'firewall_mode': {'required': True, 'custom': WebApplicationFirewallConfiguration._is_valid_firewall_mode},
+            'rule_set_type': {'required': True, 'custom': WebApplicationFirewallConfiguration._is_valid_rule_type},
+            'rule_set_version': {'required': True},
+            'disabled_rule_groups': {'required': True, 'min_items': 1}
         })
 
     def transform(self):
@@ -878,7 +921,7 @@ class WebApplicationFirewallConfiguration(Resource):
             firewall_mode = self.firewall_mode if self.firewall_mode else 'Prevention',
             rule_set_type = self.rule_set_type if self.rule_set_type else 'OWASP',
             rule_set_version = self.rule_set_version if self.rule_set_version else '3.0',
-            disabled_rule_groups = self.disabled_rule_groups
+            disabled_rule_groups = [d.transform() for d in self.disabled_rule_groups]
         )
 
         return model
@@ -903,17 +946,17 @@ class WebApplicationFirewallConfiguration(Resource):
 
 class DisabledRuleGroup(Resource):
     _attribute_map = {
-        "rule_group_name": {"key": "ruleGroupName", "type": "str"},
-        "rules": {"key": "rules", "type": "[str]"}
+        'rule_group_name': {'key': 'ruleGroupName', 'type': 'str'},
+        'rules': {'key': 'rules', 'type': '[str]'}
     }
 
     def __init__(self, rule_group_name=None, rules=None, **kwargs):
         super(DisabledRuleGroup, self).__init__(**kwargs)
         self.rule_group_name = rule_group_name if rule_group_name else None
-        self.rules = rules if rules else None
+        self.rules = rules if rules is not None else []
         self._validation.update({
-            "rule_group_name": {"required": True},
-            "rules": {"required": True, "min_items": 1}
+            'rule_group_name': {'required': True},
+            'rules': {'required': True, 'min_items': 1}
         })
 
     def transform(self):
@@ -928,15 +971,15 @@ class DisabledRuleGroup(Resource):
         
 class Probe(Resource):
     _attribute_map = {
-        "protocol": {"key": "protocol", "type": "str"},
-        "host": {"key": "host", "type": "str"},
-        "path": {"key": "path", "type": "str"},
-        "interval": {"key": "interval", "type": "int"},
-        "timeout": {"key": "timeout", "type": "int"},
-        "unhealthy_threshold": {"key": "unhealthyThreshold", "type": "int"},
-        "pick_host_name_from_backend_http_settings": {"key": "pickHostNameFromBackendHttpSettings", "type": "bool"},
-        "min_servers": {"key": "minServers", "type": "int"},
-        "match": {"key": "match", "type": "Match"}
+        'protocol': {'key': 'protocol', 'type': 'str'},
+        'host': {'key': 'host', 'type': 'str'},
+        'path': {'key': 'path', 'type': 'str'},
+        'interval': {'key': 'interval', 'type': 'int'},
+        'timeout': {'key': 'timeout', 'type': 'int'},
+        'unhealthy_threshold': {'key': 'unhealthyThreshold', 'type': 'int'},
+        'pick_host_name_from_backend_http_settings': {'key': 'pickHostNameFromBackendHttpSettings', 'type': 'bool'},
+        'min_servers': {'key': 'minServers', 'type': 'int'},
+        'match': {'key': 'match', 'type': 'Match'}
     }
 
     _valid_protocol_types = frozenset([e.value for e in ApplicationGatewayProtocol])
@@ -946,16 +989,20 @@ class Probe(Resource):
         self.protocol = protocol if protocol else None
         self.host = host if host else None
         self.path = path if path else None
-        self.interval = interval if interval else None
-        self.timeout = timeout if timeout else None
-        self.unhealthy_threshold = unhealthy_threshold if unhealthy_threshold else None
-        self.pick_host_name_from_backend_http_settings = pick_host_name_from_backend_http_settings if pick_host_name_from_backend_http_settings else None
-        self.min_servers = min_servers if min_servers else None
+        self.interval = interval if interval else 30
+        self.timeout = timeout if timeout else 30
+        self.unhealthy_threshold = unhealthy_threshold if unhealthy_threshold else 3
+        self.pick_host_name_from_backend_http_settings = pick_host_name_from_backend_http_settings if pick_host_name_from_backend_http_settings else False
+        self.min_servers = min_servers if min_servers else 1
         self.match = match if match else None
         self._validation.update({
-            "protocol": {"required": True, "custom": Probe._is_valid_protocol},
-            "host": {"required": True},
-            "path": {"required": True}
+            'protocol': {'required': True, 'custom': self._is_valid_protocol},
+            'host': {'required': True},
+            'path': {'required': True},
+            'interval': {'required': False, 'custom': self._is_valid_interval},
+            'timeout': {'required': False, 'custom': self._is_valid_timeout},
+            'unhealthy_threshold': {'required': False, 'custom': self._is_valid_unhealthy_threshold},
+            'min_servers': {'custom': self._is_valid_min_servers}
         })
 
     def transform(self):
@@ -966,16 +1013,15 @@ class Probe(Resource):
             protocol = self.protocol,
             host = self.host,
             path = self.path,
-            interval = 30,
-            timeout = 30,
-            unhealthy_threshold = 3,
-            pick_host_name_from_backend_http_settings = False,
-            min_servers = 0
+            interval = self.interval,
+            timeout = self.timeout,
+            unhealthy_threshold = self.unhealthy_threshold,
+            pick_host_name_from_backend_http_settings = self.pick_host_name_from_backend_http_settings,
+            min_servers = self.min_servers
         )
 
         return model
 
-    @classmethod
     @ValidationFunction('Value must be one of the following values: {}'.format(','.join(_valid_protocol_types)))
     def _is_valid_protocol(self, value):
 
@@ -984,16 +1030,51 @@ class Probe(Resource):
         else:
             return False
 
+    @ValidationFunction('Value must be between 1 and 86400')
+    def _is_valid_timeout(self, value):
+
+        if value >= 1 and value <= 86400:
+            return True
+        else: 
+            return False
+
+    @ValidationFunction('Value must be between 1 and 86400')
+    def _is_valid_interval(self, value):
+
+        if value >= 1 and value <= 86400:
+            return True
+        else: 
+            return False
+
+    @ValidationFunction('Value must be between 1 and 20')
+    def _is_valid_unhealthy_threshold(self, value):
+
+        if value >= 1 and value <= 20:
+            return True
+        else:
+            return False
+
+    @ValidationFunction('minServers must be an integer equal or greater than 0')
+    def _is_valid_min_servers(self, value):
+
+        if value < 0:
+            return False
+        else:
+            return True
+
 class Match(Resource):
     _attribute_map = {
-        "body": {"key": "body", "type": "str"},
-        "status_codes": {"key": "statusCodes", "type": "[str]"}
+        'body': {'key': 'body', 'type': 'str'},
+        'status_codes': {'key': 'statusCodes', 'type': '[str]'}
     }
 
     def __init__(self, body=None, status_codes=None, **kwargs):
         super(Match, self).__init__(**kwargs)
         self.body = body if body else None
         self.status_codes = status_codes if status_codes else None
+        self._validation.update({
+            'status_codes': {'required': True, 'custom': self._is_valid_status_code}
+        })
 
     def transform(self):
         factory = ApplicationGatewayBuildingBlock.get_sdk_model(ApplicationGatewayProbeHealthResponseMatchSdk)
@@ -1005,10 +1086,14 @@ class Match(Resource):
 
         return model
 
+    @ValidationFunction()
+    def _is_valid_status_code(self, value):
+        return True
+
 class SslCertificate(Resource):
     _attribute_map = {
-        "data": {"key": "data", "type": "str"},
-        "password": {"key": "password", "type": "str"}
+        'data': {'key': 'data', 'type': 'str'},
+        'password': {'key': 'password', 'type': 'str'}
     }
 
     def __init__(self, data=None, password=None, **kwargs):
@@ -1016,8 +1101,8 @@ class SslCertificate(Resource):
         self.data = data if data else None
         self.password = password if password else None
         self._validation.update({
-            "data": {"required": True},
-            "password": {"required": True}
+            'data': {'required': True},
+            'password': {'required': True}
         })
 
     def transform(self):
@@ -1033,7 +1118,7 @@ class SslCertificate(Resource):
 
 class AuthenticationCertificate(Resource):
     _attribute_map = {
-        "data": {"key": "data", "type": "str"}
+        'data': {'key': 'data', 'type': 'str'}
     }
 
     def __init__(self, data=None, **kwargs):
@@ -1052,14 +1137,14 @@ class AuthenticationCertificate(Resource):
 
 class FrontendPort(Resource):
     _attribute_map = {
-        "port": {"key": "port", "type": "int"}
+        'port': {'key': 'port', 'type': 'int'}
     }
 
     def __init__(self, port=None, **kwargs):
         super(FrontendPort, self).__init__(**kwargs)
         self.port = port if port else None
         self._validation.update({
-            "port": {"required": True}
+            'port': {'required': True}
         })
 
     def transform(self):
@@ -1074,11 +1159,11 @@ class FrontendPort(Resource):
 
 class SslPolicy(Resource):
     _attribute_map = {
-        "policy_type": {"key": "policyType", "type": "str"},
-        "policy_name": {"key": "policyName", "type": "[str]"},
-        "disabled_ssl_protocols": {"key": "disabledSslProtocols", "type": "[str]"},
-        "cipher_suites": {"key": "cipherSuites", "type": "[str]"},
-        "min_protocol_version": {"key": "minProtocolVersion", "type": "str"}
+        'policy_type': {'key': 'policyType', 'type': 'str'},
+        'policy_name': {'key': 'policyName', 'type': '[str]'},
+        'disabled_ssl_protocols': {'key': 'disabledSslProtocols', 'type': '[str]'},
+        'cipher_suites': {'key': 'cipherSuites', 'type': '[str]'},
+        'min_protocol_version': {'key': 'minProtocolVersion', 'type': 'str'}
     }
 
     _valid_cipher_suites = frozenset([e.value for e in ApplicationGatewaySslCipherSuite])
@@ -1089,16 +1174,16 @@ class SslPolicy(Resource):
     def __init__(self, policy_type=None, policy_name=None, disabled_ssl_protocols=None, cipher_suites=None, min_protocol_version=None, **kwargs):
         super(SslPolicy, self).__init__(**kwargs)
         self.policy_type = policy_type if policy_type else None
-        self.policy_name = policy_name if policy_name else None
+        self.policy_name = policy_name if policy_name is not None else []
         self.disabled_ssl_protocols = disabled_ssl_protocols if disabled_ssl_protocols else None
-        self.cipher_suites = cipher_suites if cipher_suites else None
+        self.cipher_suites = cipher_suites if cipher_suites is not None else []
         self.min_protocol_version = min_protocol_version if min_protocol_version else None
         self._validation.update({
-            "policy_type": {"required": True, "custom": SslPolicy._is_valid_ssl_policy_type},
-            "policy_name": {"required": True, "min_items": 1, "custom": SslPolicy._is_valid_ssl_policy_name},
-            "cipher_suites": {"custom": SslPolicy._is_valid_cipher_suites},
-            "disabled_ssl_protocols": {"custom": SslPolicy._is_valid_ssl_protocol},
-            "min_protocol_version": {"custom": SslPolicy._is_valid_ssl_protocol}
+            'policy_type': {'required': True, 'custom': SslPolicy._is_valid_ssl_policy_type},
+            'policy_name': {'required': True, 'min_items': 1, 'custom': SslPolicy._is_valid_ssl_policy_name},
+            'cipher_suites': {'custom': SslPolicy._is_valid_cipher_suites},
+            'disabled_ssl_protocols': {'custom': SslPolicy._is_valid_ssl_protocol},
+            'min_protocol_version': {'custom': SslPolicy._is_valid_ssl_protocol}
         })
 
     def transform(self):
@@ -1107,7 +1192,7 @@ class SslPolicy(Resource):
         model = factory(
             disabled_ssl_protocols = self.disabled_ssl_protocols,
             policy_type = self.policy_type,
-            policy_name = self.policy_name,
+            policy_name = self.policy_name if self.policy_name else None,
             cipher_suites = self.cipher_suites,
             min_protocol_version = self.min_protocol_version
         )

@@ -104,6 +104,12 @@ class Resource(BuildingBlockModel):
             'name': {'required': True}
         })
 
+class ResourceObject(BuildingBlockModel):
+    _attribute_map = {}
+
+    def __init__(self, name=None, **kwargs):
+        super(ResourceObject, self).__init__(**kwargs)
+
 # This decorator will replace the __init__ method of a Resource AND TopLevelResource subclass and generate the id attribute automatically
 class ResourceId(object):
     def __init__(self, namespace=None, type=None):

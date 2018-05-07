@@ -103,3 +103,15 @@ from .application_gateway import (
     SslPolicy,
     FrontendPort
 )
+
+from .load_balancer import (
+    LoadBalancerBuildingBlock,
+    LoadBalancer,
+    LoadBalancerFrontendIPConfiguration,
+    LoadBalancerProbe,
+    LoadBalancerBackendAddressPool,
+    LoadBalancingRule,
+    InboundNatRule,
+    InboundNatPool,
+    InternalLoadBalancerSetting
+)
